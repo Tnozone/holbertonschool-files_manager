@@ -1,40 +1,20 @@
-import redisClient from './redis';
-import dbClient from './db';
+// utils/user.js
+const dbClient = require('./db');
 
-/**
- * Module with user utilities
- */
-const userUtils = {
-  /**
-   * Gets a user id and key of redis from request
-   * @request {request_object} express request obj
-   * @return {object} object containing userId and
-   * redis key for token
-   */
-  async getUserIdAndKey(request) {
-    const obj = { userId: null, key: null };
+class User {
+  static async create(email, password) {
+    const hash = crypto.createHash('sha1').update(password).digest('hex');
+    const newUser = await dbClient.db.collection('users').insertOne({
+      email,
+      password: hash,
+    });
+    return newUser;
+  }
 
-    const xToken = request.header('X-Token');
-
-    if (!xToken) return obj;
-
-    obj.key = `auth_${xToken}`;
-
-    obj.userId = await redisClient.get(obj.key);
-
-    return obj;
-  },
-
-  /**
-   * Gets a user from database
-   * @query {object} query expression for finding
-   * user
-   * @return {object} user document object
-   */
-  async getUser(query) {
-    const user = await dbClient.usersCollection.findOne(query);
+  static async findByEmail(email) {
+    const user = await dbClient.db.collection('users').findOne({ email });
     return user;
-  },
-};
+  }
+}
 
-export default userUtils;
+module.exports = User;
